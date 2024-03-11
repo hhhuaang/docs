@@ -24,3 +24,4 @@ mim install "mmpose>=1.1.0"
 pip install "python-socketio[client]"
 pip install pygame
 ```
+4. 如果main.exe文件被杀毒软件报毒，需要手动添加为免杀
