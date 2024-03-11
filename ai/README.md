@@ -331,7 +331,7 @@ if __name__ == "__main__":
     download()
     # 检测全局变量中的python的版本是不是3.9.13
     while True:
-        if not check_python_version():
+        if check_python_version():
             create_venv_and_install_packages()
             break
         else:
