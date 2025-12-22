@@ -1,5 +1,45 @@
 # 人脸 Socket.IO 接口文档 - 控制端
 
+## 目录
+
+- [1. 安装说明](#1-安装说明)
+  - [1.1 安装依赖](#11-安装依赖)
+  - [1.2 基本连接](#12-基本连接)
+- [2. 📤 发送的信令（控制端 → 服务器）](#2--发送的信令控制端--服务器)
+  - [2.1 📤 `join` - 加入房间（必需）](#21--join---加入房间必需)
+  - [2.2 📤 `control` - 控制命令](#22--control---控制命令)
+    - [2.2.1 📤 创建学生 `students_create`](#221--创建学生-students_create)
+    - [2.2.2 📤 更新学生 `students_update`](#222--更新学生-students_update)
+    - [2.2.3 📤 删除学生 `students_delete`](#223--删除学生-students_delete)
+    - [2.2.4 📤 分页查询学生列表 `students_list`](#224--分页查询学生列表-students_list)
+    - [2.2.5 📤 按ID获取学生 `student_get_by_id`](#225--按id获取学生-student_get_by_id)
+    - [2.2.6 📤 按extra_id获取学生 `student_get_by_extra_id`](#226--按extra_id获取学生-student_get_by_extra_id)
+    - [2.2.7 📤 按user_id添加人脸 `faces_create`](#227--按user_id添加人脸-faces_create)
+    - [2.2.8 📤 按extra_id添加人脸 `faces_create_by_extra_id`](#228--按extra_id添加人脸-faces_create_by_extra_id)
+    - [2.2.9 📤 删除人脸 `faces_delete`](#229--删除人脸-faces_delete)
+    - [2.2.10 📤 获取人脸列表 `faces_list`](#2210--获取人脸列表-faces_list)
+  - [2.3 📤 `gpu` - 查询GPU列表或发送GPU命令](#23--gpu---查询gpu列表或发送gpu命令)
+    - [2.3.1 📤 查询GPU列表](#231--查询gpu列表)
+    - [2.3.2 📤 发送GPU命令](#232--发送gpu命令)
+- [3. 📥 接收的信令（服务器 → 控制端）](#3--接收的信令服务器--控制端)
+  - [3.1 📥 `state_join_gpu` - 被控制端上线通知](#31--state_join_gpu---被控制端上线通知)
+  - [3.2 📥 `state_disconnect_gpu` - 被控制端掉线通知](#32--state_disconnect_gpu---被控制端掉线通知)
+  - [3.3 📥 `state_list_gpu` - 被控制端列表查询结果](#33--state_list_gpu---被控制端列表查询结果)
+  - [3.4 📥 `{action}_report` - 接收设备上报数据](#34--action_report---接收设备上报数据)
+    - [3.4.1 📥 事件命名规则](#341--事件命名规则)
+    - [3.4.2 📥 接收状态上报](#342--接收状态上报)
+    - [3.4.3 📥 接收错误上报](#343--接收错误上报)
+    - [3.4.4 📥 接收学生管理结果上报](#344--接收学生管理结果上报)
+    - [3.4.5 📥 接收人脸管理结果上报](#345--接收人脸管理结果上报)
+    - [3.4.6 📥 接收错误上报](#346--接收错误上报)
+- [4. 完整示例](#4-完整示例)
+- [5. API 快速参考](#5-api-快速参考)
+  - [📤 发送的信令](#-发送的信令)
+  - [📥 监听的信令](#-监听的信令)
+- [6. 常见问题](#6-常见问题)
+- [7. 注意事项](#7-注意事项)
+- [8. 技术支持](#8-技术支持)
+
 本文档帮助您快速集成人脸识别/检测的Socket.IO控制功能。控制端可以发送命令控制设备执行，并实时接收设备状态和数据上报。
 
 ## 1. 安装说明
@@ -315,46 +355,6 @@ socket.emit('control', {
 | `has_feat` | boolean | 否 | 是否返回512维特征向量，默认 false |
 
 **上报事件：** `faces_list_report`
-
-##### 2.2.11 📤 人脸匹配 `match_face`
-
-```javascript
-socket.emit('control', {
-  roomId: 'room_001',
-  action: 'match_face',
-  data: {
-    feats: [
-      [0.1, 0.2, 0.3, ..., 0.5],  // 512维特征向量
-      [0.6, 0.7, 0.8, ..., 0.9]   // 512维特征向量
-    ]
-  }
-});
-```
-
-**参数说明：**
-
-| 参数名 | 类型 | 必需 | 说明 |
-|--------|------|------|------|
-| `feats` | array | 是 | 特征向量列表，每个向量为512个浮点数 |
-
-**注意事项：**
-- 特征向量通常由客户端SDK提取
-- 相似度阈值通常为 0.45
-- 可以一次匹配多个人脸
-
-**上报事件：** `match_face_report`
-
-##### 2.2.12 📤 心跳检测 `ping`
-
-```javascript
-socket.emit('control', {
-  roomId: 'room_001',
-  action: 'ping',
-  data: {}
-});
-```
-
-**上报事件：** `ping_report`
 
 **通用注意事项：**
 - 如果被控制端不在线，会收到 `state_disconnect_gpu` 事件
@@ -797,110 +797,7 @@ socket.on('faces_list_report', (data) => {
 - Socket.IO 返回 `image_base64`（Base64 编码的图片数据），而 REST API 返回 `image_path`（URL）
 - 图片读取失败时，`image_base64` 可能为 `null`（不会导致整体失败）
 
-#### 3.4.6 📥 接收人脸匹配结果上报
-
-##### 人脸匹配结果 `match_face_report`
-
-```javascript
-socket.on('match_face_report', (data) => {
-  // 注意：data.data 直接是数组，不包含 success 字段
-  // 如果失败，data.data 会是包含 success: false 的对象
-  if (Array.isArray(data.data)) {
-    const matches = data.data;  // 数组
-    console.log('匹配结果:', matches);
-    matches.forEach((match, index) => {
-      if (match.id > 0) {
-        console.log(`第${match.index}个特征匹配成功:`, match.name, match.extra_id, '相似度:', match.score);
-      } else {
-        console.log(`第${match.index}个特征未匹配到`, '相似度:', match.score);
-      }
-    });
-  } else if (data.data.success === false) {
-    console.error('匹配失败:', data.message);
-  }
-});
-```
-
-**成功数据示例（数组格式）：**
-```json
-{
-  "roomId": "30fb9b4733d0dcf3e6657c74a1ebd032",
-  "action": "match_face",
-  "data": [
-    {
-      "id": 1,
-      "name": "张三",
-      "extra_id": "S12345",
-      "person_class": "Class A",
-      "grade": "Grade 10",
-      "score": 0.85,
-      "index": 0
-    },
-    {
-      "id": 0,
-      "name": "陌生人",
-      "extra_id": null,
-      "person_class": null,
-      "grade": null,
-      "score": 0.32,
-      "index": 1
-    }
-  ]
-}
-```
-
-**失败数据示例（对象格式）：**
-```json
-{
-  "roomId": "30fb9b4733d0dcf3e6657c74a1ebd032",
-  "action": "match_face",
-  "data": {
-    "success": false
-  },
-  "message": "feats is required"
-}
-```
-
-**字段说明：**
-- `id` (int): 匹配到的用户ID，未匹配到或分数低于阈值时为 `0`
-- `name` (string): 匹配到的用户姓名，未匹配时为 `"陌生人"`
-- `extra_id` (string|null): 匹配到的用户学号/工号，未匹配时为 `null`
-- `person_class` (string|null): 匹配到的用户班级，未匹配时为 `null`
-- `grade` (string|null): 匹配到的用户年级，未匹配时为 `null`
-- `score` (float): 相似度得分（0-1），阈值通常为 0.45
-- `index` (int): 对应输入 `feats` 数组的索引（从 0 开始）
-
-**注意：**
-- 成功时 `data` 直接是数组，不包含 `success` 字段
-- 失败时 `data` 是包含 `success: false` 的对象，并包含 `message` 字段
-- 数组长度与输入 `feats` 数组长度相同
-- 未匹配时 `id` 为 `0`，`name` 为 `"陌生人"`
-
-#### 3.4.7 📥 接收心跳结果上报
-
-##### 心跳结果 `ping_report`
-
-```javascript
-socket.on('ping_report', (data) => {
-  if (data.data.success && data.data.pong) {
-    console.log('设备在线');
-  }
-});
-```
-
-**数据示例：**
-```json
-{
-  "roomId": "room_001",
-  "action": "ping",
-  "data": {
-    "success": true,
-    "pong": true
-  }
-}
-```
-
-#### 3.4.8 📥 接收错误上报
+#### 3.4.6 📥 接收错误上报
 
 ```javascript
 socket.on('error_report', (data) => {
@@ -932,7 +829,7 @@ socket.on('error_report', (data) => {
 - 设备端发送 `report` 事件时，根据 `action` 字段动态触发对应的事件
 
 **注意事项：**
-- **数组格式**：`faces_list_report` 和 `match_face_report` 的 `data` 字段直接是数组，不包含 `success` 字段
+- **数组格式**：`faces_list_report` 的 `data` 字段直接是数组，不包含 `success` 字段
   - 成功时：`data` 是数组（可能为空数组 `[]`）
   - 失败时：`data` 是包含 `success: false` 的对象，并包含 `message` 字段
 - **对象格式**：其他上报的 `data` 字段是对象，且必须包含 `success` 字段
@@ -1031,16 +928,7 @@ class FaceController {
       this.onFaceListResult(data);
     });
 
-    // ========== 人脸匹配上报监听 ==========
-    this.socket.on('match_face_report', (data) => {
-      this.onMatchFaceResult(data);
-    });
-
     // ========== 其他上报监听 ==========
-    this.socket.on('ping_report', (data) => {
-      this.onPingResult(data);
-    });
-
     this.socket.on('error_report', (data) => {
       this.onError(data);
     });
@@ -1183,29 +1071,7 @@ class FaceController {
     });
   }
 
-  // ========== 人脸匹配方法 ==========
-
-  // 人脸匹配
-  matchFace(feats) {
-    if (!this.isGpuOnline) return;
-    this.socket.emit('control', {
-      roomId: this.roomId,
-      action: 'match_face',
-      data: { feats }
-    });
-  }
-
   // ========== 其他方法 ==========
-
-  // 心跳检测
-  ping() {
-    if (!this.isGpuOnline) return;
-    this.socket.emit('control', {
-      roomId: this.roomId,
-      action: 'ping',
-      data: {}
-    });
-  }
 
   // ========== 回调方法（需要根据业务实现） ==========
 
@@ -1314,32 +1180,7 @@ class FaceController {
     });
   }
 
-  // 人脸匹配回调
-  onMatchFaceResult(data) {
-    // 注意：data.data 直接是数组，不包含 success 字段
-    // 如果失败，data.data 会是包含 success: false 的对象
-    if (Array.isArray(data.data)) {
-      const matches = data.data;
-      console.log('匹配结果:', matches);
-      matches.forEach(match => {
-        if (match.id > 0) {
-          console.log(`匹配成功: ${match.name} (${match.extra_id}), 相似度: ${match.score}`);
-        } else {
-          console.log(`未匹配, 相似度: ${match.score}`);
-        }
-      });
-    } else if (data.data.success === false) {
-      console.error('匹配失败:', data.message);
-    }
-  }
-
   // 其他回调
-  onPingResult(data) {
-    if (data.data.success && data.data.pong) {
-      console.log('设备在线');
-    }
-  }
-
   onError(data) {
     console.error('错误上报:', data);
   }
@@ -1395,20 +1236,6 @@ controller.onFaceCreateResult = (data) => {
   }
 };
 
-controller.onMatchFaceResult = (data) => {
-  // data.data 是数组，不包含 success 字段
-  if (Array.isArray(data.data)) {
-    const matches = data.data;
-    matches.forEach(match => {
-      if (match.id > 0) {
-        console.log(`识别到: ${match.name} (${match.extra_id})`);
-      }
-    });
-  } else if (data.data.success === false) {
-    console.error('匹配失败:', data.message);
-  }
-};
-
 // 绑定按钮事件示例
 document.getElementById('createStudentBtn').onclick = () => {
   controller.createStudent('S12345', '张三', '三年二班', '三年级');
@@ -1418,12 +1245,6 @@ document.getElementById('createFaceBtn').onclick = () => {
   // 获取图片的 base64
   const imageBase64 = getImageBase64();
   controller.createFace(1, imageBase64);
-};
-
-document.getElementById('matchFaceBtn').onclick = () => {
-  // 获取特征向量（通常由 SDK 提取）
-  const feats = extractFaceFeatures();
-  controller.matchFace(feats);
 };
 
 document.getElementById('listStudentsBtn').onclick = () => {
@@ -1444,7 +1265,7 @@ document.getElementById('queryBtn').onclick = () => {
 | 事件名称 | 参数 | 说明 |
 |---------|------|------|
 | `join` | `{ roomId: string }` | 加入房间（必需） |
-| `control` | `{ roomId: string, action: string, data: object }` | 控制命令<br/>- `action` - 动作名称（如 `students_create`, `faces_create`, `match_face` 等）<br/>- `data` - 数据对象，根据不同的 action 包含不同的字段 |
+| `control` | `{ roomId: string, action: string, data: object }` | 控制命令<br/>- `action` - 动作名称（如 `students_create`, `faces_create` 等）<br/>- `data` - 数据对象，根据不同的 action 包含不同的字段 |
 | `gpu` | `{ action: 'list_gpu' }` 或 `{ roomId: string, action: string, ...其他参数 }` | 查询GPU列表或发送GPU命令 |
 
 ### 📥 监听的信令
@@ -1454,7 +1275,7 @@ document.getElementById('queryBtn').onclick = () => {
 | `state_join_gpu` | `{ roomId: string, message: '上线了' }` | 被控制端上线通知 |
 | `state_disconnect_gpu` | `{ roomId: string, message: '掉线了' }` | 被控制端掉线通知 |
 | `state_list_gpu` | `{ roomIds: Set迭代器 }` | 被控制端列表查询结果 |
-| `{action}_report` | 根据action类型而定 | 接收上报数据（动态事件名）<br/>**学生管理：**<br/>- `students_create_report` - 创建学生结果<br/>- `students_update_report` - 更新学生结果<br/>- `students_delete_report` - 删除学生结果<br/>- `students_list_report` - 学生列表结果<br/>- `student_get_by_id_report` - 按ID获取学生结果<br/>- `student_get_by_extra_id_report` - 按extra_id获取学生结果<br/>**人脸管理：**<br/>- `faces_create_report` - 添加人脸结果<br/>- `faces_create_by_extra_id_report` - 按extra_id添加人脸结果<br/>- `faces_delete_report` - 删除人脸结果<br/>- `faces_list_report` - 人脸列表结果<br/>**人脸匹配：**<br/>- `match_face_report` - 人脸匹配结果<br/>**其他：**<br/>- `ping_report` - 心跳结果<br/>- `error_report` - 错误上报 |
+| `{action}_report` | 根据action类型而定 | 接收上报数据（动态事件名）<br/>**学生管理：**<br/>- `students_create_report` - 创建学生结果<br/>- `students_update_report` - 更新学生结果<br/>- `students_delete_report` - 删除学生结果<br/>- `students_list_report` - 学生列表结果<br/>- `student_get_by_id_report` - 按ID获取学生结果<br/>- `student_get_by_extra_id_report` - 按extra_id获取学生结果<br/>**人脸管理：**<br/>- `faces_create_report` - 添加人脸结果<br/>- `faces_create_by_extra_id_report` - 按extra_id添加人脸结果<br/>- `faces_delete_report` - 删除人脸结果<br/>- `faces_list_report` - 人脸列表结果<br/>**其他：**<br/>- `error_report` - 错误上报 |
 
 ---
 
@@ -1536,27 +1357,6 @@ socket.on('students_create_report', (data) => {
     console.error('创建失败:', data.message);
   }
 });
-
-// 人脸匹配
-socket.emit('control', {
-  roomId: 'room_001',
-  action: 'match_face',
-  data: {
-    feats: [[0.1, 0.2, ..., 0.5]]  // 512维特征向量
-  }
-});
-
-// 监听匹配结果（注意：data.data 是数组，不包含 success 字段）
-socket.on('match_face_report', (data) => {
-  if (Array.isArray(data.data)) {
-    const matches = data.data;  // 数组
-    matches.forEach(match => {
-      console.log('匹配结果:', match);
-    });
-  } else if (data.data.success === false) {
-    console.error('匹配失败:', data.message);
-  }
-});
 ```
 
 详细的功能列表和参数说明请参考第 2.2 节。
@@ -1605,7 +1405,7 @@ socket.onAny((eventName, data) => {
 
 7. **协议说明**：Socket.IO 客户端通常使用 `http://` 或 `https://` 协议，库会自动处理 WebSocket 升级。如果使用 `ws://` 遇到连接问题，可改回 `http://127.0.0.1:8080/face`
 
-8. **数组返回格式**：`faces_list_report` 和 `match_face_report` 的 `data` 字段是数组，不是对象。处理时需要注意：
+8. **数组返回格式**：`faces_list_report` 的 `data` 字段是数组，不是对象。处理时需要注意：
    ```javascript
    // 错误：data.data 是数组，不是对象，没有 success 字段
    if (data.data.success) { ... }
@@ -1621,8 +1421,6 @@ socket.onAny((eventName, data) => {
    - 图片中必须只有一张人脸
    - 分辨率不低于 112x112 像素
    - Base64 格式需正确（可包含 `data:image/jpeg;base64,` 前缀）
-
-10. **特征向量**：人脸匹配需要 512 维特征向量，通常由客户端 SDK 提取。相似度阈值通常为 0.45。
 
 ---
 
