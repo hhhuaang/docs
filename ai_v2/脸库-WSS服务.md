@@ -273,7 +273,7 @@ socket.emit('control', {
   action: 'faces_create',
   data: {
     user_id: 1,                                    // 用户ID（必需）
-    image_base64: '/9j/4AAQSkZJRgABAQEBLAEs...'   // Base64编码的图片（必需）（上传图片分辨率不能控制在640*640内，过大的图片会导致socket.io离线）
+    image_base64: '/9j/4AAQSkZJRgABAQEBLAEs...'   // Base64编码的图片（必需）（上传图片分辨率需要必须控制在640*640内，过大的图片会导致socket.io离线）
   }
 });
 ```
@@ -300,7 +300,7 @@ socket.emit('control', {
   action: 'faces_create_by_extra_id',
   data: {
     extra_id: 'S12345',                            // 学号/工号（必需）
-    image_base64: '/9j/4AAQSkZJRgABAQEBLAEs...'   // Base64编码的图片（必需）（上传图片分辨率不能控制在640*640内，过大的图片会导致socket.io离线）
+    image_base64: '/9j/4AAQSkZJRgABAQEBLAEs...'   // Base64编码的图片（必需）（上传图片分辨率必须控制在640*640内，过大的图片会导致socket.io离线）
   }
 });
 ```
